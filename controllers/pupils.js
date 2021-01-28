@@ -6,12 +6,18 @@ var messageRenderer = require('../modules/messageRenderer').api;
 var makeMessage = messageRenderer.makeMessage;
 var moment = require('moment');
 moment.locale('ru');
+var TOKENLIFE_V2 = 1000;
+var TOKENEXPIRESDATE = +Date.now() +  TOKENLIFE_V2;
+
+
+
 
 var PupilsController = function (mongoose, app) {
 
     var base = new BaseController('Pupil', '', mongoose, app, true);
 
     base.TOKENLIFE = 3600;
+    
 
     base.ClientAppModel = require('../models/pupil').ClientAppModel;
     base.AccessTokenModel = require('../models/pupil').AccessTokenModel;
@@ -160,6 +166,13 @@ var PupilsController = function (mongoose, app) {
         BasicStrategy: BasicStrategy,
         ClientPasswordStrategy: ClientPasswordStrategy,
         BearerStrategy: BearerStrategy
+    };
+
+
+    base.strategies_v2 = {
+        BasicStrategy: BasicStrategy,
+        ClientPasswordStrategy: ClientPasswordStrategy,
+        BearerStrategy: BearerStrategy_v2
     };
 
     base.constructor = arguments.callee;
@@ -1073,6 +1086,43 @@ var PupilsController = function (mongoose, app) {
         });
     }
 
+     function BearerStrategy_v2(accessToken, done) {
+        base.AccessTokenModel.findOne({token: accessToken}, function (err, token) {
+            if (err) {
+                return done(err);
+            }
+            if (!token) {
+                return done(null, false);
+            }
+
+            console.log('Date now',+Date.now());
+            console.log('token expires at', +token.expires_at)
+            console.log('Expired', +token.expires_at < +Date.now());
+            console.log('Token User Id', token.userId)
+
+            if (+token.expires_at < +Date.now()) {
+                console.log('Token expired');
+                base.AccessTokenModel.remove({token: accessToken}, function (err) {
+                    if (err) return done(err);
+                });
+                return done(null, false, {message: 'Token expired'});
+            }
+
+            base.Collection.findById(token.userId, function (err, user) {
+                
+                if (err) {
+                    return done(err);
+                }
+                if (!user) {
+                    return done(null, false, {message: 'Unknown user'});
+                }
+
+                var info = {scope: '*'};
+                done(null, user, info);
+            });
+        });
+    }
+
     function ClientPasswordStrategy(clientId, clientSecret, done) {
         base.ClientAppModel.findOne({clientId: clientId}, function (err, client) {
             if (err) {
@@ -1254,10 +1304,12 @@ var PupilsController = function (mongoose, app) {
                 if (err) {
                     return done(err);
                 }
+                console.log('tokenObj', tokenObj)
                 done(null,
                     tokenObj.tokenValue,
                     tokenObj.refreshTokenValue,
-                    {
+                    {   
+                        expires_at: +tokenObj.token.created,
                         expires_in: base.TOKENLIFE,
                         userID: user._id
                     }, tokenObj);

@@ -1,6 +1,7 @@
 var crypto = require('crypto');
 var mongoose = require('mongoose');
 var async = require('async');
+var TOKEN_EXPIRE_DATE = new Date(+Date.now() + 2*60*1000);
 
 var PUPIL_FIELDS_TO_BE_VISIBLE = [
     '_id', 
@@ -329,7 +330,14 @@ var AccessToken = new mongoose.Schema({
     },
     created: {
         type: Date,
-        default: Date.now
+        default: Date.now,
+        
+    },
+    expires_at: {
+        type: Date,
+        default: function() {
+            return TOKEN_EXPIRE_DATE;
+        }
     }
 });
 
