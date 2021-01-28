@@ -1108,6 +1108,9 @@ var PupilsController = function (mongoose, app) {
                 return done(null, false, {message: 'Token expired'});
             }
 
+
+            
+
             base.Collection.findById(token.userId, function (err, user) {
                 
                 if (err) {
