@@ -940,6 +940,7 @@ var PupilsController = function (mongoose, app) {
         });
     }
 
+
     function emailAuthorization(client, username, password, scope, done) {
         console.log('emailAuthorization', client, username, password, scope);
         base.Collection.findOne({email: username}, function (err, user) {
@@ -1095,8 +1096,8 @@ var PupilsController = function (mongoose, app) {
                 return done(null, false);
             }
 
-            console.log('Date now',+Date.now());
-            console.log('token expires at', +token.expires_at)
+            console.log('Date now', new Date());
+            console.log('Token expires at', new Date(+token.expires_at))
             console.log('Expired', +token.expires_at < +Date.now());
             console.log('Token User Id', token.userId)
 
@@ -1106,10 +1107,7 @@ var PupilsController = function (mongoose, app) {
                     if (err) return done(err);
                 });
                 return done(null, false, {message: 'Token expired'});
-            }
-
-
-            
+            } 
 
             base.Collection.findById(token.userId, function (err, user) {
                 
